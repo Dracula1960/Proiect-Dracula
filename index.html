@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>PROJECT DRACULA - COMMAND CENTER</title>
+    <style>
+        body { background: #0b0e14; color: #adbac7; font-family: 'Fira Code', 'Courier New', monospace; line-height: 1.6; padding: 20px; }
+        .dashboard { max-width: 1100px; margin: auto; }
+        .header { border-bottom: 2px solid #444c56; padding-bottom: 20px; margin-bottom: 30px; }
+        .header h1 { color: #539bf5; margin: 0; font-size: 2.5em; }
+        .card { background: #1c2128; border: 1px solid #444c56; border-radius: 6px; padding: 20px; margin-bottom: 20px; }
+        .card h2 { color: #768390; border-bottom: 1px solid #373e47; padding-bottom: 10px; margin-top: 0; }
+        .detail-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
+        .success-tag { color: #57ab5a; font-weight: bold; }
+        .fail-tag { color: #e5534b; font-weight: bold; }
+        .tech-spec { font-size: 0.9em; background: #0d1117; padding: 15px; border-radius: 4px; border: 1px solid #30363d; }
+        footer { margin-top: 40px; font-size: 0.8em; color: #8b949e; text-align: right; border-top: 1px solid #30363d; padding-top: 10px; }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <div class="header">
+            <h1>PROJECT DRACULA: MASTER LOGS</h1>
+            <p>Operating System: Raspberry Pi 5 | Infrastructure: 14TB UGREEN Vault</p>
+        </div>
+
+        <div class="card" id="week-1">
+            <h2>WEEK 1: THE ISP LOCKOUT & THE "BOSS" HIERARCHY</h2>
+            <p>The first week was dedicated to fighting against the ISP's locked hardware in order to establish a secure internal perimeter.</p>
+
+            <div class="detail-grid">
+                <div>
+                    <p><b>The Root Cause:</b> The T-Mobile gateway is a "black box". Its firmware completely blocks the user from advanced configurations. The network was blind and hostile to hosting servers.</p>
+
+                    <p><span class="fail-tag">Initial Failure (The AP Failure):</span> We attempted to use T-Mobile as the main router and TP-Link only as an <b>Access Point (AP)</b>. It failed completely. T-Mobile's strict NAT rules caused IP conflicts, making the laptops (Dracu and Dracula) invisible to each other.</p>
+
+                    <p><span class="success-tag">The Engineering Solution:</span> We abandoned negotiations with T-Mobile's firmware. We demoted it to a simple <b>Layer 2 "Pipe"</b>. To regain full control, we pulled the TP-Link out of AP mode and promoted it to <b>Access Router (AR / Router Boss)</b>.</p>
+                </div>
+                <div class="tech-spec">
+                    <b>Final Result:</b><br>
+                    TP-Link commands the 192.168.1.x subnet, managing the SPI firewall and static leases.<br><br>
+                    <b>Current Topology:</b><br>
+                    - Gateway/Boss: 192.168.1.1<br>
+                    - Dracula (Pi 5): 192.168.1.10<br>
+                    - Samsung: 192.168.1.200<br>
+                    <i>Mesh visibility: 100%</i>
+                </div>
+            </div>
+        </div>
+
+        <div class="card" id="week-2">
+            <h2>WEEK 2: THE 443GB BUG & THE STORAGE HORIZON</h2>
+            <p>With the network unified, the second week exposed a critical storage limitation — the 14TB vault was being reported as only 443GB.</p>
+
+            <div class="detail-grid">
+                <div>
+                    <p><b>The Root Cause:</b> The default SMB mount used by Linux was not compatible with the UGREEN NAS inode system. Without the <code>noserverino</code> flag, the kernel was hallucinating a 443GB ceiling instead of the true 13.5TB capacity.</p>
+
+                    <p><span class="fail-tag">Failed Variant — Standard SMB:</span> Default CIFS mount reported 443GB. All file operations were capped. The vault was effectively unusable for large backups.</p>
+
+                    <p><span class="fail-tag">Failed Variant — NFS:</span> Attempted NFS as an alternative. Failed due to UID/GID permission mismatch between the Linux Pi and the UGOS NAS internal user mapping.</p>
+
+                    <p><span class="success-tag">The Engineering Solution:</span> Upgraded to <b>SMB v3.0</b> with <code>noserverino</code>, <code>cache=none</code>, and tuned <code>rsize/wsize=131072</code> in <code>/etc/fstab</code>. The full 13.5TB horizon was unlocked instantly.</p>
+                </div>
+                <div class="tech-spec">
+                    <b>Final Result:</b><br>
+                    All 3 NAS shares mounted and stable.<br><br>
+                    <b>Mount Config:</b><br>
+                    - /mnt/vault (14TB main)<br>
+                    - /mnt/test_vault<br>
+                    - /mnt/ugreen (Photos)<br><br>
+                    Flags: noserverino, vers=3.0,<br>
+                    nofail, _netdev<br>
+                    <i>Capacity verified: 13.5TB</i>
+                </div>
+            </div>
+        </div>
+
+        <div class="card" id="week-3">
+            <h2>WEEK 3: DOCKER STABILITY & THE DATABASE MIGRATION</h2>
+            <p>With the vault accessible, the third week focused on standing up the service stack and eliminating recurring crashes in the database layer.</p>
+
+            <div class="detail-grid">
+                <div>
+                    <p><b>The Root Cause:</b> MariaDB was installed on the Pi's MicroSD card. The SD card's high I/O latency under concurrent Docker load caused repeated segmentation faults — Exit Code 139 — crashing Nextcloud entirely.</p>
+
+                    <p><span class="fail-tag">Failed Variant — SD Card DB:</span> MariaDB on <code>mmcblk0</code> — Exit 139 crash loop. Nextcloud inaccessible within minutes of startup.</p>
+
+                    <p><span class="fail-tag">Failed Variant — 4TB Toshiba DB:</span> Partial improvement in stability, but USB 3.0 throughput bottleneck limited performance. Not viable long-term.</p>
+
+                    <p><span class="success-tag">The Engineering Solution:</span> Migrated all Docker volumes — Nextcloud, MariaDB, Uptime Kuma — to the 14TB NAS Vault. Eliminated I/O bottleneck entirely. 100% uptime achieved.</p>
+                </div>
+                <div class="tech-spec">
+                    <b>Final Result:</b><br>
+                    All services running on NAS-backed persistence.<br><br>
+                    <b>Stack:</b><br>
+                    - Nextcloud + MariaDB 10.11<br>
+                    - Pi-hole (DNS)<br>
+                    - Uptime Kuma (monitoring)<br>
+                    - Cloudflare Tunnel<br><br>
+                    Files indexed: 119,274<br>
+                    <i>Uptime: 100% verified</i>
+                </div>
+            </div>
+        </div>
+
+        <div class="card" id="week-4">
+            <h2>WEEK 4: NATIVE AI INTEGRATION & ZERO-TRUST INGRESS</h2>
+            <p>Phase 4 required automating data classification and establishing secure remote telemetry to the Command Center without compromising the internal perimeter.</p>
+
+            <div class="detail-grid">
+                <div>
+                    <p><b>The Threat Model:</b> Containerized AI deployment caused volume binding conflicts. Critically, exposing the dashboard via traditional NAT port-forwarding on the TP-Link AR was rejected. This would expand the attack surface, exposing the 192.168.1.x subnet to automated WAN scanners and unauthenticated ingress vectors.</p>
+
+                    <p><span class="success-tag">Security Remediation:</span> We bypassed container limits by installing Claude Code CLI natively for direct POSIX filesystem access. For secure external visibility, we deployed a Cloudflare Zero Trust Tunnel (<code>cloudflared</code> daemon), establishing a persistent, encrypted outbound connection requiring zero open ingress ports on the edge.</p>
+                </div>
+                <div class="tech-spec">
+                    <b>Data Operations:</b><br>
+                    Regex-based data classification successful.<br>
+                    Unstructured data routed to <code>/Documents/AI_Certifications</code>.<br><br>
+                    <b>Network Security Posture:</b><br>
+                    Zero Trust Overlay Network Active.<br>
+                    Inbound Edge Ports: 0 (Strict Block).<br>
+                    Nginx (1.10) securely bridged via reverse tunnel.<br>
+                    Status: ATTACK SURFACE MINIMIZED.
+                </div>
+            </div>
+        </div>
+
+        <div class="card" id="week-5">
+            <h2>WEEK 5: LEGACY MIGRATION & CROSS-DEVICE SYNC</h2>
+            <p>Phase 5 focused on the decommissioning of the 4TB Toshiba legacy drive and the synchronization of all mobile and laptop data into the 14TB Vault.</p>
+
+            <div class="detail-grid">
+                <div>
+                    <p><b>The Conflict:</b> Moving decades of unstructured data from the Toshiba drive while maintaining real-time sync for the Samsung phone (1.200) and Dracu laptop (1.25). The TP-Link Router Boss had to manage high-bandwidth internal NAT traffic to prevent I/O timeouts during the massive data ingestion.</p>
+
+                    <p><span class="success-tag">The Engineering Fix:</span> Leveraged the TP-Link's NAT table for optimized local routing between devices. Initiated a multi-vector sync via Nextcloud, moving the 4TB Toshiba "swamp" into the organized NAS "Vault." All internal traffic is now routed with priority for the 1.10 (Dracula) server nodes.</p>
+                </div>
+                <div class="tech-spec">
+                    <b>Sync Operations:</b><br>
+                    Toshiba 4TB &rarr; UGREEN 14TB (In Progress).<br>
+                    Mobile/Laptop Sync: Active via Nextcloud.<br><br>
+                    <b>Network Status:</b><br>
+                    NAT Translation: Optimized for local 192.168.1.x traffic.<br>
+                    DHCP Reservations: Dracula (1.10), Dracu (1.25), Samsung (1.200).<br>
+                    Status: DATA CONSOLIDATION ACTIVE.
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            Accountability Ledger: $482.00 | Last Update: May 2026
+        </footer>
+    </div>
+</body>
+</html>
