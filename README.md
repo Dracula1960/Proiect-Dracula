@@ -66,8 +66,8 @@ Initiated full migration of the 4TB Toshiba "swamp" to the organized 14TB Vault 
 
 ---
 
-## Author
+### Project Lead: Dracula
 
-**Dragos Constantin Ion** — The Architect  
 Built on a Raspberry Pi 5 | May 2026  
+Accountability Ledger: $482.00  
 *"From chaos, a protocol."*
